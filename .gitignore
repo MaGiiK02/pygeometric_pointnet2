@@ -1,0 +1,7 @@
+.vscode/
+.vscode/*
+*.sh
+*floyd*
+*.DS_Store
+.idea/
+.idea/*
