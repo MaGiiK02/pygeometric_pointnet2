@@ -11,6 +11,7 @@ class SAModule(torch.nn.Module):
         self.conv = PointConv(nn)
 
     def forward(self, x, pos, batch):
+        print(x.dev)
         idx = fps(pos, batch, ratio=self.sample_points/len(pos))
         row, col = radius(
             pos, pos[idx], self.r, batch, batch[idx], max_num_neighbors=64)
@@ -32,23 +33,24 @@ class SAModuleMSG(torch.nn.Module):
         self.sample_points = sample_points
         self.r_list = r_list
         self.group_sample_size = group_sample_size_list
-        self.conv_list = []
+        self.conv_list = torch.nn.ModuleList()
 
         for i in range(len(nn_list)):
-            #create a point conv for each radius
+            #create a pointConv for each radius
             self.conv_list.append(PointConv(nn_list[i]))
 
     def forward(self, x, pos, batch):
         idx = fps(pos, batch, self.sample_points/len(pos))
-
+        x_list = []
         for i in range(len(self.r_list)):
             row, col = radius(
                 pos, pos[idx], self.r_list[i], batch, batch[idx], max_num_neighbors=self.group_sample_size[i])
             edge_index = torch.stack([col, row], dim=0)
-            x = self.conv_list[i](x, (pos, pos[idx]), edge_index)
-            pos, batch = torch.cat(pos, pos[idx]), torch.cat(batch, batch[idx])
+            group_x = self.conv_list[i](x, (pos, pos[idx]), edge_index)
+            x_list.append(group_x)
 
-        return x, pos, batch
+        new_x = torch.cat(x_list, 1)
+        return new_x, pos[idx], batch[idx]
 
 class GlobalSAModule(torch.nn.Module):
     r'''

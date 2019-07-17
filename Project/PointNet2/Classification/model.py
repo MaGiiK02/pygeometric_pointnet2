@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear as Lin
-from Project.Layers.Sampling import GlobalSAModule,SAModule
-from Project.Layers.MPLs import MLP
+from Layers.Sampling import GlobalSAModule,SAModule
+from Layers.MPLs import MLP
 
 #TODO Implement weight decay on the classification part
 class PointNet2Class(torch.nn.Module):

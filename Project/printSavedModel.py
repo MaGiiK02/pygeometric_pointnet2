@@ -4,12 +4,11 @@ import torch
 
 if __name__ == '__main__':
 
-	if sys.argv !=3:
-		print('Wrong arguments count, only a file at time can be opened!')
-
 	filePath = sys.argv[1]
 
-	savedModel = torch.load(filePath)
+	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+	savedModel = torch.load(filePath, map_location=device
+							)
 	epoch = savedModel['epoch']
 	loss = savedModel['loss']
 
