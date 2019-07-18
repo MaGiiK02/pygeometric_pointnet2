@@ -83,7 +83,7 @@ def trainModel(datasetName, batchSize=32, nPoints=1024, train_epoch=251, checkpo
         model, optimizer, start_epoch = loadFromCheckpoint(checkpoint, train_dataset.num_classes, device)
 
    #to test use 6 epoch, to train at least 201
-    for epoch in range(start_epoch, train_epoch):
+    for epoch in range(start_epoch, start_epoch+train_epoch):
         train(model, train_loader, optimizer, device)
         test_acc = test(model, test_loader, device)
         print('Epoch: {:03d}, Test: {:.4f}'.format(epoch, test_acc))

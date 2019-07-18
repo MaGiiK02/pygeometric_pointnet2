@@ -4,17 +4,17 @@ from torch_geometric.nn import PointConv, fps, radius
 from torch_geometric.utils import scatter_
 
 class SAModule(torch.nn.Module):
-    def __init__(self, sample_points, r, nn):
+    def __init__(self, sample_points, r, sample_size,nn):
         super(SAModule, self).__init__()
         self.sample_points = sample_points
         self.r = r
+        self.sample_size = sample_size
         self.conv = PointConv(nn)
 
     def forward(self, x, pos, batch):
-        print(x.dev)
         idx = fps(pos, batch, ratio=self.sample_points/len(pos))
         row, col = radius(
-            pos, pos[idx], self.r, batch, batch[idx], max_num_neighbors=64)
+            pos, pos[idx], self.r, batch, batch[idx], max_num_neighbors=self.sample_size)
         edge_index = torch.stack([col, row], dim=0)
         x = self.conv(x, (pos, pos[idx]), edge_index)
         pos, batch = pos[idx], batch[idx]

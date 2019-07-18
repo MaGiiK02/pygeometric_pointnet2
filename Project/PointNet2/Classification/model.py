@@ -17,8 +17,8 @@ class PointNet2Class(torch.nn.Module):
 
         #Missing MSG( Multi scale grouping!!)
 
-        self.sa1_module = SAModule(512, 0.2, MLP([3, 64, 64, 128]))
-        self.sa2_module = SAModule(128, 0.4, MLP([128 + 3, 128, 128, 256]))
+        self.sa1_module = SAModule(512, 0.2, 32, MLP([3, 64, 64, 128]))
+        self.sa2_module = SAModule(128, 0.4, 64, MLP([128 + 3, 128, 128, 256]))
         self.sa3_module = GlobalSAModule(MLP([256 + 3, 256, 512, 1024]))
         
         #Classification Layers
