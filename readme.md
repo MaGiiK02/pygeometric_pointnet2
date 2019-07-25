@@ -51,7 +51,8 @@ All the layers defined for this project can be found in the Layers Module, like 
 The checkpoint will be automatically stored in the folder relatives to the models, so for example the weights of the PointNet2 Classification will be stored in this subfolder:
 
 ``` shell
-./PointNet2/Classification/weights/train_checkpoint/
+./PointNet2/Classification/weights/train_checkpoint/ (for train checkpoints weights)
+./PointNet2/Classification/weights/trained/ (for inference)
 ```
 
 ## Prerequisites
