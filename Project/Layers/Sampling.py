@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
-from torch_geometric.nn import PointConv, fps, radius
+from torch_geometric.nn import PointConv, fps, radius, SAGEConv, DeepGraphInfomax
 from torch_geometric.utils import scatter_
 
 class SAModule(torch.nn.Module):
