@@ -1,6 +1,5 @@
 from PointNet2.Classification.train import trainModel as TrainPointNet2Classification
 from PointNet2MSG.Classification.train import trainModel as TrainPointNet2MSGClassification
-from PointSage.Classification.train import trainModel as TrainSagePointClassification
 import argparse
 
 parser = argparse.ArgumentParser()

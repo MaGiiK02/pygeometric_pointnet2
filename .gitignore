@@ -7,4 +7,4 @@
 .idea/*
 Download/
 Download/*
-*__pychace__*
+__pycache__/
