@@ -11,5 +11,9 @@ if __name__ == '__main__':
 							)
 	epoch = savedModel['epoch']
 	loss = savedModel['loss']
+	avg_loss = savedModel['loss_avg']
+	current_lr = savedModel['current_lr']
+	train_time_hms = savedModel['train_time_hms']
 
-	print('epoch:{:03d}  loss:{:.4f}'.format(epoch, loss))
+	print('{} :: Epoch: {:03d}, Test: {:.4f}, Last 10 AVG: {:.4f}, LR: {:.6f}'.format(
+		train_time_hms, epoch, loss, avg_loss, current_lr))

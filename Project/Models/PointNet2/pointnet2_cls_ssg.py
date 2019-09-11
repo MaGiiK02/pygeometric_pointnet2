@@ -5,17 +5,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear as Lin
-from Layers.Sampling import GlobalSAModule,SAModule
+from Layers.sampling import GlobalSAModule,SAModule
 from Layers.MPLs import MLP
 
 #TODO Implement weight decay on the classification part
 class PointNet2Class(torch.nn.Module):
     r'''
     '''
-    def __init__(self,class_count):
+    def __init__(self, class_count, bn_momentum=0.1):
         super(PointNet2Class, self).__init__()
-
-        #Missing MSG( Multi scale grouping!!)
 
         self.sa1_module = SAModule(512, 0.2, 32, MLP([3, 64, 64, 128]))
         self.sa2_module = SAModule(128, 0.4, 64, MLP([128 + 3, 128, 128, 256]))
@@ -23,9 +21,9 @@ class PointNet2Class(torch.nn.Module):
         
         #Classification Layers
         self.lin1 = Lin(1024, 512)
-        self.bn1 = nn.BatchNorm1d(512)
+        self.bn1 = nn.BatchNorm1d(512, momentum=bn_momentum)
         self.lin2 = Lin(512, 256)
-        self.bn2 = nn.BatchNorm1d(256)
+        self.bn2 = nn.BatchNorm1d(256, momentum=bn_momentum)
         self.lin3 = Lin(256, class_count)
 
     def forward(self, data):
