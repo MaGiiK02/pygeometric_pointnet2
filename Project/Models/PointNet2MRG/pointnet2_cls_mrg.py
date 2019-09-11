@@ -38,12 +38,14 @@ class PointNet2MRGClass(torch.nn.Module):
 
 	def forward(self, data):
 		sa_out = (data.x, data.pos, data.batch)
+
 		hr_x, hr_pos, hr_batch = self.high_resolution_module(*sa_out)
 		mr_x, mr_pos, mr_batch = self.mid_resolution_module(*sa_out)
-		lr_x, lr_pos, lr_batch = self.low_resolution_module(*sa_out)
+		x = torch.cat([hr_x, mr_x], dim=1)
 
-		#batch and pos are obtained from the original point cloud's data
-		x = torch.cat([hr_x, mr_x, lr_x], dim=1)
+		lr_x, lr_pos, lr_batch = self.low_resolution_module(*sa_out)
+		x = torch.cat([x, lr_x], dim=1)
+
 		batch = data.batch
 
 		x, pos, batch = self.readout(x, data.pos, batch)

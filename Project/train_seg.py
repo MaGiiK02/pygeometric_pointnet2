@@ -16,7 +16,7 @@ from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambd
 from Models.PointNet2MSG.pointnet2_seg_msg import PointNet2MSGSeg as PointNet2MSG
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool)')
+parser.add_argument('--model', default=None, help='Model name (PointNet2MSG)')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number sampled from each object [default: 1024]')
 parser.add_argument('--shapenet_category', default='Airplane', help='The category to get for the segmentation class from the ShapeNet dataset (Airplane, Bag, Cap, Car, Chair, Earphone, Guitar, Knife, Lamp, Laptop, Motorbike, Mug, Pistol, Rocket, Skateboard, Table) [Default: Airplane]')
 parser.add_argument('--epoch', type=int, default=251, help='Epoch to run [default: 251]')
@@ -69,7 +69,7 @@ def test(model, test_loader, device):
 
     correct_nodes = total_nodes = 0
     intersections, unions, categories = [], [], []
-    for data in loader:
+    for data in test_loader:
         data = data.to(device)
         with torch.no_grad():
             out = model(data)

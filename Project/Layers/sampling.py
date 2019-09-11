@@ -141,10 +141,10 @@ class UpsampleMRG(torch.nn.Module):
         lr_pos = pos_lr
         lr_batch = batch_lr
         lr_x = torch.cat([lr_x, lr_pos], dim=1)
-        lr_iterpolate_count = self.high_res_points / self.low_res_points
+
         #return a tensor where the feature of each point of lr_x are appended in a new array in
         # the point of the upsampled version is in his knn
-        lr_x = knn_interpolate(lr_x, lr_pos, out_pos, lr_batch, out_batch, k=int(lr_iterpolate_count))
+        lr_x = knn_interpolate(lr_x, lr_pos, out_pos, lr_batch, out_batch, k=1)
         out_x = torch.cat([out_x, lr_x], dim=1)
 
         return out_x, out_pos.new_zeros((out_x.size(0), 3)), out_batch
