@@ -18,11 +18,12 @@ from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambd
 from Models.PointNet2.pointnet2_cls_ssg import PointNet2Class as PointNet2
 from Models.PointNet2MSG.pointnet2_cls_msg import PointNet2MSGClass as PointNet2MSG
 from Models.PointNet2MRG.pointnet2_cls_mrg import PointNet2MRGClass as PointNet2MRG
+from Models.PointNet2MRGSortPool.pointnet2_cls_mrg_sort_pool import PointNet2MRGSortPoolClass as PointNet2MRGSortPool
 from Models.PointNet2MSGSortPool.pointnet2_cls_msg_sort_pool import PointNet2MSGSortPoolClass as PointNet2MSGSortPool
 from Models.PointNet2MSGFPSortPool.pointnet2_cls_msgfp_sort_pool import PointNet2MSGFPSortPoolClass as PointNet2MSGFPSortPool
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool, PointNet2MRG, PointNet2MSGFPSortPool)')
+parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool, PointNet2MRG, PointNet2MRGSortPool, PointNet2MSGFPSortPool)')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number sampled from each object [default: 1024]')
 parser.add_argument('--epoch', type=int, default=251, help='Epoch to run [default: 251]')
 parser.add_argument('--batch_size', type=int, default=32, help='The size of the batch to use [default: 16]')
@@ -89,7 +90,7 @@ def getModel(name, input_features, class_count):
     elif (MODEL_NAME == 'PointNet2MSG'):
         model = PointNet2MSG(class_count, nfeatures=input_features)
 
-    elif (MODEL_NAME == 'PointNet2MRG'):
+    elif (MODEL_NAME == 'PointNet2MRGSortPool'):
         model = PointNet2MRG(class_count, nfeatures=input_features)
 
     elif (MODEL_NAME == 'PointNet2MSGSortPool'):
@@ -97,6 +98,9 @@ def getModel(name, input_features, class_count):
 
     elif (MODEL_NAME == 'PointNet2MSGFPSortPool'):
         model = PointNet2MSGFPSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
+
+    elif (MODEL_NAME == 'PointNet2MRGSortPool'):
+        model = PointNet2MRGSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
 
     return model
 
