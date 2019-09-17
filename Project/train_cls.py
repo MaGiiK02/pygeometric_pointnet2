@@ -90,7 +90,7 @@ def getModel(name, input_features, class_count):
     elif (MODEL_NAME == 'PointNet2MSG'):
         model = PointNet2MSG(class_count, nfeatures=input_features)
 
-    elif (MODEL_NAME == 'PointNet2MRGSortPool'):
+    elif (MODEL_NAME == 'PointNet2MRG'):
         model = PointNet2MRG(class_count, nfeatures=input_features)
 
     elif (MODEL_NAME == 'PointNet2MSGSortPool'):
@@ -100,7 +100,7 @@ def getModel(name, input_features, class_count):
         model = PointNet2MSGFPSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
 
     elif (MODEL_NAME == 'PointNet2MRGSortPool'):
-        model = PointNet2MRGSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
+        model = PointNet2MRGSortPool(class_count, n_features=input_features, sort_pool_k=SORT_POOL_K)
 
     return model
 
@@ -138,13 +138,15 @@ if __name__ == '__main__':
         decay_step=LR_DECAY_STEP,
         batch_size = BATCH_SIZE,
         device = device
-    )
-
-    if (CHECKPOINT != None):
-        (model, optimizer, start_epoch, optimizer_scheduler) = loadFromCheckpoint(
-            CHECKPOINT, model, optimizer, optimizer_scheduler, device)
+	)
 
     train_start_time = time.time()
+
+    if (CHECKPOINT != None):
+        (model, optimizer, optimizer_scheduler, start_epoch, train_checkpoint_time) = loadFromCheckpoint(
+            CHECKPOINT, model, optimizer, optimizer_scheduler, device)
+        train_start_time-=train_checkpoint_time
+
 
     # TRAIN CYCLE
     for epoch in range(start_epoch, start_epoch + EPOCH):

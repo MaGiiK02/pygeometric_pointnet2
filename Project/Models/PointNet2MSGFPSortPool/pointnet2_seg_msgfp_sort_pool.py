@@ -10,13 +10,13 @@ from Layers.features_propagation import FPModule as FPLayer
 from Layers.MPLs import MLP
 
 
-class PointNet2MSGFPSortPoolClass(torch.nn.Module):
+class PointNet2MSGFPSortPoolSeg(torch.nn.Module):
     r'''
         Extension of the PointNet2 where the readout layer is replaced wit the sortpool function.
         and the feature are send forward in the network from each SA-layer
     '''
     def __init__(self, class_count, n_feature=3, sort_pool_k=32):
-        super(PointNet2MSGFPSortPoolClass, self).__init__()
+        super(PointNet2MSGFPSortPoolSeg, self).__init__()
 
         self.sa1_module = SAModuleMSG(512, [0.1,0.2,0.4], [16,32,128], [
             MLP([n_feature, 32,32,64]),
@@ -38,13 +38,18 @@ class PointNet2MSGFPSortPoolClass(torch.nn.Module):
         self.sa3_module = GlobalSortPool(MLP([256 +3, 512, 512, 1024]), sort_pool_k)
 
 
-        #Classification Layers
+        #Segmentation Layers
         classification_point_feature = 1024*sort_pool_k
-        self.lin1 = Lin(classification_point_feature, 512)
-        self.bn1 = nn.BatchNorm1d(512)
-        self.lin2 = Lin(512, 256)
-        self.bn2 = nn.BatchNorm1d(256)
-        self.lin3 = Lin(256, class_count)
+
+        self.fp3_module = FPLayer(1, MLP([classification_point_feature + 256, 256, 256]))
+        self.fp2_module = FPLayer(3, MLP([256 + 128, 256, 128]))
+        self.fp1_module = FPLayer(3, MLP([128, 128, 128, 128]))
+
+        self.lin1 = Lin(128, 128)
+        self.bn1 = nn.BatchNorm1d(128)
+        self.lin2 = Lin(128, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.lin3 = Lin(128, class_count)
 
     def forward(self, data):
         sa0_out = (data.x, data.pos, data.batch)

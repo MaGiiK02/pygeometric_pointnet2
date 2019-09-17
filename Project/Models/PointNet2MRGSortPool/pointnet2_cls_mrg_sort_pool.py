@@ -10,14 +10,14 @@ from Layers.MPLs import MLP
 
 
 class PointNet2MRGSortPoolClass(torch.nn.Module):
-	def __init__(self, class_count, nfeatures=3, num_points=1024, sort_pool_k=32):
-		super(PointNet2MRGClass, self).__init__()
+	def __init__(self, class_count, n_features=3, num_points=1024, sort_pool_k=32):
+		super(PointNet2MRGSortPoolClass, self).__init__()
 
 		nFeaturesL2 = 3 + 128
 		nFeaturesL3 = 3 + 256
 
 		shared_mpls = [
-			SAModuleFullPoint(0.2, 16, MLP([nfeatures, 64, 64, 128])),
+			SAModuleFullPoint(0.2, 16, MLP([n_features, 64, 64, 128])),
 			SAModuleFullPoint(0.4, 16, MLP([nFeaturesL2, 128, 128, 256])),
 			SAModuleFullPoint(0.8, 16, MLP([nFeaturesL3, 512, 512, 1024]))
 		]
@@ -30,7 +30,8 @@ class PointNet2MRGSortPoolClass(torch.nn.Module):
 		self.readout = GlobalSortPool(MLP([3093, 2048, 2048, 1024]), k=sort_pool_k)
 
 		# Classification Layers
-		self.lin1 = Lin(1024, 512)
+		sort_pool_out = 1024*sort_pool_k
+		self.lin1 = Lin(sort_pool_out, 512)
 		self.bn1 = nn.BatchNorm1d(512)
 		self.lin2 = Lin(512, 256)
 		self.bn2 = nn.BatchNorm1d(256)

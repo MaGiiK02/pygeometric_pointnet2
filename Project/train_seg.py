@@ -8,18 +8,21 @@ import torch
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 from torch_geometric.data import DataLoader
+from torch_geometric.nn import knn_interpolate
+from torch_geometric.utils import intersection_and_union as i_and_u
 
 from DatasetLoader.loader import LoadDataset
 from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
+
+
 
 from Models.PointNet2MSG.pointnet2_seg_msg import PointNet2MSGSeg as PointNet2MSG
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=None, help='Model name (PointNet2MSG)')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number sampled from each object [default: 1024]')
-parser.add_argument('--shapenet_category', default='Airplane', help='The category to get for the segmentation class from the ShapeNet dataset (Airplane, Bag, Cap, Car, Chair, Earphone, Guitar, Knife, Lamp, Laptop, Motorbike, Mug, Pistol, Rocket, Skateboard, Table) [Default: Airplane]')
-parser.add_argument('--epoch', type=int, default=251, help='Epoch to run [default: 251]')
+parser.add_argument('--epoch', type=int, default=101, help='Epoch to run [default: 101]')
 parser.add_argument('--batch_size', type=int, default=12, help='The size of the batch to use [default: 12]')
 parser.add_argument('--weight_decay', type=float, default=1e-5, help='The weight decay to use for the training, the original PointNet2 1e-5 [default:1e-5]')
 parser.add_argument('--lr_decay', type=float, default=0.7, help='The weight decay used as to start the exponential LR decay, the step is defined from the Exponential class of pytorch.[default:0.7]')
@@ -129,13 +132,13 @@ if __name__ == '__main__':
         os.chmod(modelWeightsPath, 0o777)
 
     # DATASET preparing
-	transform = T.Compose([
-		T.RandomTranslate(0.01),
-		T.RandomRotate(15, axis=0),
-		T.RandomRotate(15, axis=1),
-		T.RandomRotate(15, axis=2)
-	])
-	pre_transform = T.NormalizeScale()
+    transform = T.Compose([
+        T.RandomTranslate(0.01),
+        T.RandomRotate(15, axis=0),
+        T.RandomRotate(15, axis=1),
+        T.RandomRotate(15, axis=2)
+    ])
+    pre_transform = T.NormalizeScale()
     (train_dataset, test_dataset) = LoadDataset(
         DATASET_NAME, transform=transform, pre_transform=pre_transform)
 
