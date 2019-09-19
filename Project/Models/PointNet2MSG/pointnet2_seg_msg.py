@@ -29,8 +29,8 @@ class PointNet2MSGSeg(torch.nn.Module):
         nFeaturesL3 = 3 + 128 + 256 + 256
         self.sa3_module = GlobalSAModule(MLP([nFeaturesL3, 256, 512, 1024]))
 
-        self.fp3_module = FPModule(1, MLP([1024 + 256, 256, 256]))
-        self.fp2_module = FPModule(3, MLP([256 + 128, 256, 128]))
+        self.fp3_module = FPModule(1, MLP([1664, 256, 256]))
+        self.fp2_module = FPModule(3, MLP([576, 256, 128]))
         self.fp1_module = FPModule(3, MLP([128, 128, 128, 128]))
 
         self.lin1 = torch.nn.Linear(128, 128)

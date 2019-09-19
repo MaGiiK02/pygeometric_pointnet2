@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import os.path as osp
+import time
 from collections import deque
 
 import torch
@@ -14,6 +15,7 @@ from torch_geometric.utils import intersection_and_union as i_and_u
 from DatasetLoader.loader import LoadDataset
 from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
+from Utils.helper import time_to_hms_string
 
 
 
@@ -163,23 +165,28 @@ if __name__ == '__main__':
         device = device
     )
 
+    train_start_time = time.time()
+
     if (CHECKPOINT != None):
-        (model, optimizer, start_epoch, optimizer_scheduler) = loadFromCheckpoint(
-            CHECKPOINT, model, optimizer, optimizer_scheduler)
+        (model, optimizer, optimizer_scheduler, start_epoch, train_checkpoint_time) = loadFromCheckpoint(
+            CHECKPOINT, model, optimizer, optimizer_scheduler, device)
+        train_start_time -= train_checkpoint_time
 
 
     # TRAIN CYCLE
     for epoch in range(start_epoch, start_epoch + EPOCH):
         train(model, train_loader, optimizer, device)
-        test_acc = test(model, test_loader, device)
+        (test_loss, test_acc) = test(model, test_loader, device)
         optimizer_scheduler.step()
 
         # the older item are automatically removed from the deque when full
         last_10_loss_values.append(test_acc)
         loss_avg = sum(last_10_loss_values) / float(len(last_10_loss_values))
 
-        epoch_to_print = 'Epoch: {:03d}, Test: {:.4f}, Last 10 AVG: {:.4f}, LR: {:.8f}'.format(
-            epoch, test_acc, loss_avg, optimizer_scheduler.get_lr()[0])
+        current_train_time = time.time() - train_start_time
+
+        epoch_to_print = '{} :: Epoch: {:03d}, Test: {:.4f}, Last 10 AVG: {:.4f}, LR: {:.8f}, Loss: {:.4f}'.format(
+            current_train_time, epoch, test_acc, loss_avg, optimizer_scheduler.get_lr()[0], test_loss)
 
         print(epoch_to_print)
         logging.info(epoch_to_print)
@@ -187,7 +194,8 @@ if __name__ == '__main__':
         # TODO add better system to save checkpoint, and maybe a better naming (with start and end feature count)
         if (epoch % 10 == 0):
             saveModelCheckpoint(
-                modelWeightsPath, model, optimizer, test_acc, epoch, optimizer_scheduler, loss_avg)
+                modelWeightsPath, model, optimizer, test_acc, epoch, optimizer_scheduler, loss_avg, current_train_time)
+
 
     # Final trained Model store for inference
     inferenceReadyModel = osp.join( modelWeightsPath, 'trained/model_inference.pt')

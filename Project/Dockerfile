@@ -118,7 +118,7 @@ RUN conda install -y requests=2.19.1 \
  && conda clean -ya
 
 # Install Graphviz.
-RUN conda install -y graphviz=2.38.0 \
+RUN conda install -c conda-forge -y graphviz=2.38.0 \
  && conda clean -ya
 RUN pip install graphviz==0.8.4
 
