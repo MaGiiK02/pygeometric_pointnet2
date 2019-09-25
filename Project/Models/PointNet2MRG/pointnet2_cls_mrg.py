@@ -14,12 +14,10 @@ class PointNet2MRGClass(torch.nn.Module):
 		super(PointNet2MRGClass, self).__init__()
 
 		nFeaturesL2 = 3 + 128
-		nFeaturesL3 = 3 + 256
 
 		shared_mpls = [
-			SAModuleFullPoint(0.2, 16, MLP([nfeatures, 64, 64, 128])),
-			SAModuleFullPoint(0.4, 16, MLP([nFeaturesL2, 128, 128, 256])),
-			SAModuleFullPoint(0.8, 16, MLP([nFeaturesL3, 512, 512, 1024]))
+			SAModuleFullPoint(0.3, 16, MLP([nfeatures, 64, 64, 128])),
+			SAModuleFullPoint(0.6, 32, MLP([nFeaturesL2, 128, 128, 256]))
 		]
 
 		# The mpls are shared to lower the model memory footprint
@@ -27,7 +25,7 @@ class PointNet2MRGClass(torch.nn.Module):
 		self.mid_resolution_module = SAModuleMRG(num_points, 256, shared_mpls)
 		self.low_resolution_module = SAModuleMRG(num_points, 128, shared_mpls)
 
-		self.readout = GlobalSAModule(MLP([3093, 2048, 2048, 1024]))
+		self.readout = GlobalSAModule(MLP([1024, 1024, 2048, 1024]))
 
 		# Classification Layers
 		self.lin1 = Lin(1024, 512)

@@ -57,3 +57,4 @@ INFO:root:Dataset: ModelNet10
 INFO:root:00:06:50.04 :: Epoch: 001, Test: 0.4747, Last 10 AVG: 0.4747, LR: 0.00100000
 INFO:root:00:14:01.14 :: Epoch: 002, Test: 0.6608, Last 10 AVG: 0.5677, LR: 0.00100000
 INFO:root:00:21:26.99 :: Epoch: 003, Test: 0.6905, Last 10 AVG: 0.6087, LR: 0.00100000
+INFO:root:Dataset: ModelNet10
