@@ -9,9 +9,9 @@ from Layers.sampling import  SAModuleMRG, SAModuleFullPoint, GlobalSAModule
 from Layers.MPLs import MLP
 
 
-class PointNet2MRGClass(torch.nn.Module):
+class PointNet2MRGLightClass(torch.nn.Module):
 	def __init__(self, class_count, nfeatures=3, num_points=1024):
-		super(PointNet2MRGClass, self).__init__()
+		super(PointNet2MRGLightClass, self).__init__()
 
 		nFeaturesL2 = 3 + 128
 
@@ -22,7 +22,6 @@ class PointNet2MRGClass(torch.nn.Module):
 
 		# The mpls are shared to lower the model memory footprint
 		self.high_resolution_module = SAModuleMRG(num_points, 512, shared_mpls)
-		self.mid_resolution_module = SAModuleMRG(num_points, 256, shared_mpls)
 		self.low_resolution_module = SAModuleMRG(num_points, 128, shared_mpls)
 
 		self.readout = GlobalSAModule(MLP([789, 1024, 1024, 1024]))
@@ -38,11 +37,8 @@ class PointNet2MRGClass(torch.nn.Module):
 		sa_out = (data.x, data.pos, data.batch)
 
 		hr_x, hr_pos, hr_batch = self.high_resolution_module(*sa_out)
-		mr_x, mr_pos, mr_batch = self.mid_resolution_module(*sa_out)
-		x = torch.cat([hr_x, mr_x], dim=1)
-
 		lr_x, lr_pos, lr_batch = self.low_resolution_module(*sa_out)
-		x = torch.cat([x, lr_x], dim=1)
+		x = torch.cat([hr_x, lr_x], dim=2)
 
 		batch = data.batch
 

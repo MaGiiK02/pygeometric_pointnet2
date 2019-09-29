@@ -21,6 +21,7 @@ from Models.PointNet2MRG.pointnet2_cls_mrg import PointNet2MRGClass as PointNet2
 from Models.PointNet2MRGSortPool.pointnet2_cls_mrg_sort_pool import PointNet2MRGSortPoolClass as PointNet2MRGSortPool
 from Models.PointNet2MSGSortPool.pointnet2_cls_msg_sort_pool import PointNet2MSGSortPoolClass as PointNet2MSGSortPool
 from Models.PointNet2MSGFPSortPool.pointnet2_cls_msgfp_sort_pool import PointNet2MSGFPSortPoolClass as PointNet2MSGFPSortPool
+from Models.PointNet2MRGLight.pointnet2_cls_mrg_light import PointNet2MRGLightClass as PointNet2MRGLight
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool, PointNet2MRG, PointNet2MRGSortPool, PointNet2MSGFPSortPool)')
@@ -92,6 +93,9 @@ def getModel(name, input_features, class_count):
 
     elif (MODEL_NAME == 'PointNet2MRG'):
         model = PointNet2MRG(class_count, nfeatures=input_features)
+
+    elif (MODEL_NAME == 'PointNet2MRGLightClass'):
+        model = PointNet2MRGLight(class_count, n_features=input_features)
 
     elif (MODEL_NAME == 'PointNet2MSGSortPool'):
         model = PointNet2MSGSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
