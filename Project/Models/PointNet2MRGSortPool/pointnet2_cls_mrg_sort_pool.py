@@ -17,9 +17,8 @@ class PointNet2MRGSortPoolClass(torch.nn.Module):
 		nFeaturesL3 = 3 + 256
 
 		shared_mpls = [
-			SAModuleFullPoint(0.2, 16, MLP([n_features, 64, 64, 128])),
-			SAModuleFullPoint(0.4, 16, MLP([nFeaturesL2, 128, 128, 256])),
-			SAModuleFullPoint(0.8, 16, MLP([nFeaturesL3, 512, 512, 1024]))
+			SAModuleFullPoint(0.4, 16, MLP([nfeatures, 64, 64, 128])),
+			SAModuleFullPoint(0.9, 32, MLP([nFeaturesL2, 128, 128, 256]))
 		]
 
 		# The mpls are shared to lower the model memory footprint
@@ -27,7 +26,7 @@ class PointNet2MRGSortPoolClass(torch.nn.Module):
 		self.mid_resolution_module = SAModuleMRG(num_points, 256, shared_mpls)
 		self.low_resolution_module = SAModuleMRG(num_points, 128, shared_mpls)
 
-		self.readout = GlobalSortPool(MLP([3093, 2048, 2048, 1024]), k=sort_pool_k)
+		self.readout = GlobalSortPool(MLP([789, 1024, 1024, 1024]), k=sort_pool_k)
 
 		# Classification Layers
 		sort_pool_out = 1024*sort_pool_k

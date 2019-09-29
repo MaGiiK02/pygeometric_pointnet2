@@ -50,7 +50,6 @@ class PointNet2MSGFPSortPoolClass(torch.nn.Module):
         sa0_out = (data.x, data.pos, data.batch)
         sa1_out = self.sa1_module(*sa0_out)
         sa2_out = self.sa2_module(*sa1_out)
-        x, pos, batch = sa1_out
 
         #Feature propagation from lower level
 
