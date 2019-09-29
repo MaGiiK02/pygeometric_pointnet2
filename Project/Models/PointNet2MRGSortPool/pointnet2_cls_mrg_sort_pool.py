@@ -14,10 +14,9 @@ class PointNet2MRGSortPoolClass(torch.nn.Module):
 		super(PointNet2MRGSortPoolClass, self).__init__()
 
 		nFeaturesL2 = 3 + 128
-		nFeaturesL3 = 3 + 256
 
 		shared_mpls = [
-			SAModuleFullPoint(0.4, 16, MLP([nfeatures, 64, 64, 128])),
+			SAModuleFullPoint(0.4, 16, MLP([n_features, 64, 64, 128])),
 			SAModuleFullPoint(0.9, 32, MLP([nFeaturesL2, 128, 128, 256]))
 		]
 

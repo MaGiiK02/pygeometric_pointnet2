@@ -10,13 +10,13 @@ from Layers.MPLs import MLP
 
 
 class PointNet2MRGLightClass(torch.nn.Module):
-	def __init__(self, class_count, nfeatures=3, num_points=1024):
+	def __init__(self, class_count, n_features=3, num_points=1024):
 		super(PointNet2MRGLightClass, self).__init__()
 
 		nFeaturesL2 = 3 + 128
 
 		shared_mpls = [
-			SAModuleFullPoint(0.4, 16, MLP([nfeatures, 64, 64, 128])),
+			SAModuleFullPoint(0.4, 16, MLP([n_features, 64, 64, 128])),
 			SAModuleFullPoint(0.9, 32, MLP([nFeaturesL2, 128, 128, 256]))
 		]
 
@@ -24,7 +24,7 @@ class PointNet2MRGLightClass(torch.nn.Module):
 		self.high_resolution_module = SAModuleMRG(num_points, 512, shared_mpls)
 		self.low_resolution_module = SAModuleMRG(num_points, 128, shared_mpls)
 
-		self.readout = GlobalSAModule(MLP([789, 1024, 1024, 1024]))
+		self.readout = GlobalSAModule(MLP([527, 1024, 1024, 1024]))
 
 		# Classification Layers
 		self.lin1 = Lin(1024, 512)
@@ -38,7 +38,7 @@ class PointNet2MRGLightClass(torch.nn.Module):
 
 		hr_x, hr_pos, hr_batch = self.high_resolution_module(*sa_out)
 		lr_x, lr_pos, lr_batch = self.low_resolution_module(*sa_out)
-		x = torch.cat([hr_x, lr_x], dim=2)
+		x = torch.cat([hr_x, lr_x], dim=1)
 
 		batch = data.batch
 

@@ -120,9 +120,6 @@ def getModel(name, input_features, class_count):
         model = PointNet2MSG(class_count, nfeatures=input_features)
 
     elif (MODEL_NAME == 'PointNet2MSGSortPool'):
-    	model = PointNet2MSGSortPool(class_count, nfeatures=input_features)
-
-    elif (MODEL_NAME == 'PointNet2MSGSortPool'):
     	model = PointNet2MSGSortPool(class_count, nfeatures=input_features, sort_pool_k=SORT_POOL_K)
 
     elif (MODEL_NAME == 'PointNet2MSGFPSortPool'):

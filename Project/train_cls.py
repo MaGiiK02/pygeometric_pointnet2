@@ -94,7 +94,7 @@ def getModel(name, input_features, class_count):
     elif (MODEL_NAME == 'PointNet2MRG'):
         model = PointNet2MRG(class_count, nfeatures=input_features)
 
-    elif (MODEL_NAME == 'PointNet2MRGLightClass'):
+    elif (MODEL_NAME == 'PointNet2MRGLight'):
         model = PointNet2MRGLight(class_count, n_features=input_features)
 
     elif (MODEL_NAME == 'PointNet2MSGSortPool'):
