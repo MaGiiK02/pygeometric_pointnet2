@@ -9,7 +9,6 @@ import torch
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 from torch_geometric.data import DataLoader
-from torch_geometric.nn import knn_interpolate
 from torch_geometric.utils import intersection_and_union as i_and_u
 
 from DatasetLoader.loader import LoadDataset
@@ -17,9 +16,9 @@ from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
 from Utils.helper import time_to_hms_string
 
-
-
 from Models.PointNet2MSG.pointnet2_seg_msg import PointNet2MSGSeg as PointNet2MSG
+from Models.PointNet2MSGSortPool.pointnet2_seg_msg_sort_pool import PointNet2MSGSortPoolSeg as PointNet2MSGSortPool
+from Models.PointNet2MSGFPSortPool.pointnet2_seg_msgfp_sort_pool import PointNet2MSGFPSortPoolSeg as PointNet2MSGFPSortPool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=None, help='Model name (PointNet2MSG)')
@@ -33,6 +32,7 @@ parser.add_argument('--dataset', default='ShapeNet', help='The name of the datas
 parser.add_argument('--checkpoint', default=None, help='The path to the checkpoint file from which continue the train')
 parser.add_argument('--log_file', default='./train_log.txt', help='The file where to print the logs [default: ./train_log.txt]')
 parser.add_argument('--use_normals', type=bool, default=False, help='Specufy if train the model using point normals from the data sets[default: False]')
+parser.add_argument('--sort_pool_k', type=int, default=32, help='The number of point the sort_pool should keep <only needed with the sort_pool model> [default: 32]')
 ARGS = parser.parse_args()
 
 BATCH_SIZE = ARGS.batch_size
@@ -46,6 +46,7 @@ LR_DECAY = ARGS.lr_decay
 LR_DECAY_STEP = ARGS.lr_decay_step
 LOG_FILE = ARGS.log_file
 N_FEATURES = 6 if ARGS.use_normals else 3
+SORT_POOL_K = ARGS.sort_pool_k
 
 def train(model, train_loader, optimizer, device):
     model.train()
@@ -118,8 +119,14 @@ def getModel(name, input_features, class_count):
     if (MODEL_NAME == 'PointNet2MSG'):
         model = PointNet2MSG(class_count, nfeatures=input_features)
 
-#    elif (MODEL_NAME == 'PointNet2MSGSortPool'):
-#    	model = PointNet2MSGSortPool(class_count, nfeatures=input_features)
+    elif (MODEL_NAME == 'PointNet2MSGSortPool'):
+    	model = PointNet2MSGSortPool(class_count, nfeatures=input_features)
+
+    elif (MODEL_NAME == 'PointNet2MSGSortPool'):
+    	model = PointNet2MSGSortPool(class_count, nfeatures=input_features, sort_pool_k=SORT_POOL_K)
+
+    elif (MODEL_NAME == 'PointNet2MSGFPSortPool'):
+    	model = PointNet2MSGFPSortPool(class_count, nfeatures=input_features, sort_pool_k=SORT_POOL_K)
 
     return model
 
@@ -186,7 +193,7 @@ if __name__ == '__main__':
         current_train_time = time.time() - train_start_time
 
         epoch_to_print = '{} :: Epoch: {:03d}, Test: {:.4f}, Last 10 AVG: {:.4f}, LR: {:.8f}, Loss: {:.4f}'.format(
-            current_train_time, epoch, test_acc, loss_avg, optimizer_scheduler.get_lr()[0], test_loss)
+            time_to_hms_string(current_train_time), epoch, test_acc, loss_avg, optimizer_scheduler.get_lr()[0], test_loss)
 
         print(epoch_to_print)
         logging.info(epoch_to_print)
