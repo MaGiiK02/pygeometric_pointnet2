@@ -42,7 +42,7 @@ class PointNetVanillaClass(torch.nn.Module):
         x = data.pos.view(len(data.y), self.nPoints, self.nFeatures ).transpose(1,2)
         x = self.net(x)
         x = x.transpose(1,2).contiguous().view(-1,1024)
-        x, pos, batch = self.sa3_module(x, data.pos, data.bath)
+        x, pos, batch = self.sa3_module(x, data.pos, data.batch)
 
         x = F.relu(self.bn1(self.lin1(x)))
         x = F.dropout(x, p=0.4, training=self.training)
