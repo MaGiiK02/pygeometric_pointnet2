@@ -155,12 +155,13 @@ class GlobalSAModule(torch.nn.Module):
     r'''
 
     '''
-    def __init__(self, nn):
+    def __init__(self, nn=None):
         super(GlobalSAModule, self).__init__()
         self.nn = nn
 
     def forward(self, x, pos, batch):
-        x = self.nn(torch.cat([x, pos], dim=1))
+        if(self.nn is not None):
+            x = self.nn(torch.cat([x, pos], dim=1))
         x = scatter_('max', x, batch)
         pos = pos.new_zeros((x.size(0), 3))
         batch = torch.arange(x.size(0), device=batch.device)
