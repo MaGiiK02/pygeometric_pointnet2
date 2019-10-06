@@ -23,6 +23,7 @@ from Models.PointNet2MSGSortPool.pointnet2_cls_msg_sort_pool import PointNet2MSG
 from Models.PointNet2MSGFPSortPool.pointnet2_cls_msgfp_sort_pool import PointNet2MSGFPSortPoolClass as PointNet2MSGFPSortPool
 from Models.PointNet2MRGLight.pointnet2_cls_mrg_light import PointNet2MRGLightClass as PointNet2MRGLight
 from Models.PointNetVanilla.pointnet_cls_vanilla import PointNetVanillaClass  as PointNetVanilla
+from Models.PointNetInputEnhanced.pointnet_cls_ie import PointNetInputEnhanced  as PointNetInputEnhanced
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool, PointNet2MRG, PointNet2MRGSortPool, PointNet2MSGFPSortPool)')
@@ -87,7 +88,10 @@ def setupTrain(model_name, n_features, class_number, device, w_decay, lr_decay, 
 def getModel(name, input_features, class_count):
     model = None
     if (MODEL_NAME == 'PointNetVanilla'):
-        model = PointNetVanilla(class_count, nfeatures=input_features)
+        model = PointNetVanilla(class_count, nfeatures=input_features, nPoints=NUM_POINT)
+
+    elif (MODEL_NAME == 'PointNetInputEnhanced'):
+        model = PointNetInputEnhanced(class_count, nfeatures=input_features, nPoints=NUM_POINT)
 
     elif (MODEL_NAME == 'PointNet2'):
         model = PointNet2(class_count, bn_momentum=0.1)

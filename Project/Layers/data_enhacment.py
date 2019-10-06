@@ -2,17 +2,24 @@ import torch
 from torch_geometric.nn import radius
 
 class AddNeightboursCount(torch.nn.Module):
-    def __init__(self, radii, max_points):
-        super(AddNeightboursCount, self).__init__()
-        self.max_points = max_points
-        self.radii = radii
+	def __init__(self, radii, max_points):
+		super(AddNeightboursCount, self).__init__()
+		self.max_points = max_points
+		self.radii = radii
 
-    def forward(self, x, pos, batch):
+	def forward(self, x, pos, batch):
 		if(x is None):
-			x = torch.tensor(device= pos.getDevice())
-		for i in range(self.radii) :
-			row, col = radius(
-                pos, pos[idx], self.r_list[i], batch, batch[idx], max_num_neighbors=self.group_sample_size[i])
-			x[row][i] = len(col)
+			x = pos #TODO maybe clone
 
-		return x
+		# extend the feature dimension in order to accommodate the new features
+		for i in range(len(self.radii)) :
+			centers_index, unused  = radius(
+                pos, pos, self.radii[i], batch, batch, max_num_neighbors=self.max_points[i])
+
+			#Prepare for concat
+			neighboors_count = centers_index.bincount().float().unsqueeze(-1)
+
+			x = torch.cat((x, neighboors_count), dim=1)
+
+
+		return x, pos, batch

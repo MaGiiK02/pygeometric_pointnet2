@@ -8,22 +8,23 @@ from torch.nn import Linear as Lin
 from Layers.sampling import GlobalSAModule
 from Layers.data_enhacment import AddNeightboursCount
 
-class PointNetInputEnhancedClass(torch.nn.Module):
+class PointNetInputEnhanced(torch.nn.Module):
 	r'''
-		A pointNet where we enhance the data with the infromation we belive the Pointnet++
-		obtains form the ball operation
 	'''
 
 	def __init__(self, class_count, nfeatures, bn_momentum=0.1, nPoints=1024):
-		super(PointNetInputEnhancedClass, self).__init__()
+		super(PointNetInputEnhanced, self).__init__()
 
 		self.nPoints = nPoints
-		self.nFeatures = nfeatures
+		self.nFeatures = nfeatures + 4 # 4 is number of radii used to count the points
 
-        self.data_enhance_module = AddNeightboursCount(max_points=[0.1,0.2,0.4,0.8], radii=[16,32,128,128])
+		self.de_layer = AddNeightboursCount(
+			max_points=[16, 32, 128, 128],
+			radii=[0.1, 0.2, 0.4, 0.8]
+		)
 
 		self.net = Sequential(
-			Conv1d(nfeatures, 64, 1, stride=1),
+			Conv1d(self.nFeatures, 64, 1, stride=1),
 			ReLU(),
 			Conv1d(64, 64, 1, stride=1),
 			ReLU(),
@@ -43,10 +44,11 @@ class PointNetInputEnhancedClass(torch.nn.Module):
 		self.lin3 = Lin(256, class_count)
 
 	def forward(self, data):
-        x = self.input_enhance_layer(data.pos, data.batch)
-		x_1_out = self.net(x).view(-1, 1024)
-		sa2_out = self.sa3_module(x_1_out, data.pos, data.batch)
-		x, pos, batch = sa2_out
+		x, pos, batch = self.de_layer(data.x, data.pos, data.batch)
+		x = x.view(len(data.y), self.nPoints, self.nFeatures).transpose(1, 2)
+		x = self.net(x)
+		x = x.transpose(1, 2).contiguous().view(-1, 1024)
+		x, pos, batch = self.sa3_module(x, data.pos, data.batch)
 
 		x = F.relu(self.bn1(self.lin1(x)))
 		x = F.dropout(x, p=0.4, training=self.training)

@@ -103,3 +103,19 @@ INFO:root:Dataset: ModelNet10
 INFO:root:00:05:44.13 :: Epoch: 001, Test: 0.6068, Last 10 AVG: 0.6068, LR: 0.00100000
 INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
