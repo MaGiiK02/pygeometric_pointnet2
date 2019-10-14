@@ -19,7 +19,7 @@ class PointNetInputEnhanced(torch.nn.Module):
 		self.nFeatures = nfeatures + 4 # 4 is number of radii used to count the points
 
 		self.de_layer = AddNeightboursCount(
-			max_points=[16, 32, 128, 128],
+			max_points=[1024, 1024, 1024, 1024],
 			radii=[0.1, 0.2, 0.4, 0.8]
 		)
 

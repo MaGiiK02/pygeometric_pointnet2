@@ -7,4 +7,6 @@
 .idea/*
 Download/
 Download/*
+vcg/
+vcg/*
 __pycache__/
