@@ -14,6 +14,7 @@ from DatasetLoader.loader import LoadDataset
 from Utils.helper import time_to_hms_string
 from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
+from Normalization.normalization import Normalize
 
 from Models.PointNet2.pointnet2_cls_ssg import PointNet2Class as PointNet2
 from Models.PointNet2MSG.pointnet2_cls_msg import PointNet2MSGClass as PointNet2MSG
@@ -62,7 +63,6 @@ def train(model, train_loader, optimizer, device):
         loss = F.nll_loss(model(data), data.y)
         loss.backward()
         optimizer.step()
-
 
 def test(model, test_loader, device):
     model.eval()
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         os.chmod(modelWeightsPath, 0o777)
 
     # DATASET preprocessing
-    pre_transform, transform = T.NormalizeScale(), T.SamplePoints(NUM_POINT)  # POINT SAMPLING
+    pre_transform, transform = Normalize(), T.SamplePoints(NUM_POINT)  # POINT SAMPLING
     (train_dataset, test_dataset) = LoadDataset(
         DATASET_NAME, transform=transform, pre_transform=pre_transform)
 

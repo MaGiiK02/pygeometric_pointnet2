@@ -120,3 +120,4 @@ INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10

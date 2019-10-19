@@ -12,14 +12,18 @@ import torch_geometric.transforms as T
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
+import Sampling.poisson_disk_sampling as Poisson
+import Normalization.normalization as N
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--source_dir', default=None)
-parser.add_argument('--sampling_method', default='ImportanceSampling', help='The type of samling to use.')
+parser.add_argument('--sample_num', default=1024, help='The number of points to sample.')
+parser.add_argument('--sampling_method', default='PoissonDiskSampling', help='The type of samling to use.')
 parser.add_argument('--out_dir', default="./processed_data", help='The directory where to save the processed data')
 parser.add_argument('--models_count', default=10, help="Number to model to process!")
 ARGS = parser.parse_args()
 
+SAMPLE_NUM = ARGS.sample_num
 SOURCEDIR = ARGS.source_dir
 SAMPLING_METHOD = ARGS.sampling_method
 OUT_DIR_ROOT = ARGS.out_dir
@@ -30,7 +34,10 @@ def getTransform():
 	transform = None
 
 	if(SAMPLING_METHOD == 'ImportanceSampling'):
-		transform = T.SamplePoints(1024, remove_faces=True, include_normals=False)
+		transform = T.SamplePoints(SAMPLE_NUM, remove_faces=True, include_normals=False)
+
+	elif (SAMPLING_METHOD == 'PoissonDiskSampling'):
+		transform = Poisson.PoissonDiskSampling(SAMPLE_NUM, remove_faces=True)
 
 	return transform
 
@@ -46,7 +53,8 @@ if __name__ == '__main__':
 	assert (transform != None)
 
 	# DATASET preprocessing
-	pre_transform = T.NormalizeScale()
+	#pre_transform = T.NormalizeScale()
+	pre_transform = N.Normalize()
 
 	classes = os.listdir(SOURCEDIR)
 	files = []
@@ -84,6 +92,9 @@ if __name__ == '__main__':
 			 xlabel='X',
 			 ylabel='Y',
 			 zlabel='Z',
+		     xlim=[-1.5, 1.5],
+		     ylim=[-1.5, 1.5],
+		     zlim=[-1.5, 1.5],
 			 title=osp.basename(filename)
 			 )
 		axp.scatter(pos[0], pos[1], pos[2], c='r', marker='o')
