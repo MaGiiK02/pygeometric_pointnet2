@@ -10,3 +10,12 @@ Download/*
 vcg/
 vcg/*
 __pycache__/
+*cpython*.so
+Project/build/
+Project/build/*
+Project/dist/
+Project/dist/*
+Project/VCG.egg-info
+Project/VCG.egg-info/
+*.off
+*.ply

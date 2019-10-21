@@ -18,6 +18,7 @@ class AddNeightboursCount(torch.nn.Module):
 
 			#Prepare for concat
 			neighboors_count = centers_index.bincount().float().unsqueeze(-1)
+			neighboors_count /= self.max_points[i] #normaliation
 
 			x = torch.cat((x, neighboors_count), dim=1)
 
