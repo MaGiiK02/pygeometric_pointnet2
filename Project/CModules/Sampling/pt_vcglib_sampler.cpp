@@ -1,30 +1,195 @@
 #include "pt_vcglib_sampler.h"
 
+// Torch C++Extension Lib
 #include <torch/extension.h>
+
+// VCG Libs
 #include <vcg/complex/complex.h>
+#include <vcg/complex/append.h>
 
-#include <wrap/io_trimesh/export.h>
+#include <vcg/complex/algorithms/update/topology.h>
+#include <vcg/complex/algorithms/update/bounding.h>
+#include <vcg/complex/algorithms/update/normal.h>
+#include <vcg/complex/algorithms/update/position.h>
+#include <vcg/complex/algorithms/update/quality.h>
+#include <vcg/complex/algorithms/stat.h>
 
+#include <vcg/complex/algorithms/clean.h>
 #include <vcg/complex/algorithms/point_sampling.h>
-#include <vcg/complex/algorithms/create/platonic.h>
+#include <vcg/complex/algorithms/create/resampler.h>
+#include <vcg/complex/algorithms/clustering.h>
+#include <vcg/simplex/face/distance.h>
+#include <vcg/complex/algorithms/geodesic.h>
+#include <vcg/complex/algorithms/voronoi_processing.h>
+
+#include <vcg/space/index/grid_static_ptr.h>
+
+#include <wrap/io_trimesh/export_off.h>
+#include <wrap/io_trimesh/import_off.h>
 
 using namespace vcg;
 using namespace std;
 
-
-class MyEdge;
 class MyFace;
+class MyEdge;
 class MyVertex;
-struct MyUsedTypes : public UsedTypes<	Use<MyVertex>   ::AsVertexType,
-                                        Use<MyEdge>     ::AsEdgeType,
-                                        Use<MyFace>     ::AsFaceType>{};
 
-class MyVertex  : public Vertex<MyUsedTypes, vertex::Coord3f, vertex::Normal3f, vertex::BitFlags  >{};
-class MyFace    : public Face< MyUsedTypes, face::FFAdj,  face::Normal3f, face::VertexRef, face::BitFlags > {};
-class MyEdge    : public Edge<MyUsedTypes>{};
-class MyMesh    : public tri::TriMesh< vector<MyVertex>, vector<MyFace> , vector<MyEdge>  > {};
+struct MyUsedTypes : public UsedTypes<Use<MyVertex>::AsVertexType, Use<MyEdge>::AsEdgeType, Use<MyFace>::AsFaceType> {};
 
-torch::Tensor PoissonDisk(torch::Tensor vertex, torch::Tensor faces, unsigned int sampleNum,  float rad){
+class MyVertex : public Vertex< MyUsedTypes, vertex::Coord3f, vertex::Normal3f, vertex::Color4b, vertex::TexCoord2f,
+	vertex::Qualityf, vertex::BitFlags > {};
+
+class MyEdge : public Edge< MyUsedTypes, edge::VertexRef, edge::BitFlags, edge::EVAdj, edge::EEAdj > {};
+
+class MyFace : public Face < MyUsedTypes, face::VertexRef, face::Normal3f, face::Color4b, face::WedgeTexCoord2f,
+	face::BitFlags > {};
+
+class MyMesh : public tri::TriMesh< std::vector<MyVertex>, std::vector<MyFace>, std::vector<MyEdge> > {};
+
+/***** SAMPLER *****/
+
+class BaseSampler
+{
+public:
+
+	BaseSampler(MyMesh* _m) {
+		m = _m;
+		uvSpaceFlag = false;
+		qualitySampling = false;
+		perFaceNormal = false;
+		//tex = 0;
+	}
+
+	MyMesh *m;
+	/*QImage* tex;*/
+	int texSamplingWidth;
+	int texSamplingHeight;
+	bool uvSpaceFlag;
+	bool qualitySampling;
+	bool perFaceNormal;  // default false; if true the sample normal is the face normal, otherwise it is interpolated
+
+	void reset()
+	{
+		m->Clear();
+	}
+
+	void AddVert(const MyMesh::VertexType &p)
+	{
+		tri::Allocator<MyMesh>::AddVertices(*m, 1);
+		m->vert.back().ImportData(p);
+	}
+
+	void AddFace(const MyMesh::FaceType &f, MyMesh::CoordType p)
+	{
+		tri::Allocator<MyMesh>::AddVertices(*m, 1);
+		m->vert.back().P() = f.cP(0)*p[0] + f.cP(1)*p[1] + f.cP(2)*p[2];
+
+		if (perFaceNormal) m->vert.back().N() = f.cN();
+		else m->vert.back().N() = f.cV(0)->N()*p[0] + f.cV(1)->N()*p[1] + f.cV(2)->N()*p[2];
+		if (qualitySampling)
+			m->vert.back().Q() = f.cV(0)->Q()*p[0] + f.cV(1)->Q()*p[1] + f.cV(2)->Q()*p[2];
+	}
+
+	void AddTextureSample(const MyMesh::FaceType &f, const MyMesh::CoordType &p, const Point2i &tp, float edgeDist)
+	{
+		if (edgeDist != .0) return;
+
+		tri::Allocator<MyMesh>::AddVertices(*m, 1);
+
+		if (uvSpaceFlag) m->vert.back().P() = Point3<MyMesh::ScalarType>(float(tp[0]), float(tp[1]), 0);
+		else m->vert.back().P() = f.cP(0)*p[0] + f.cP(1)*p[1] + f.cP(2)*p[2];
+
+		m->vert.back().N() = f.cV(0)->N()*p[0] + f.cV(1)->N()*p[1] + f.cV(2)->N()*p[2];
+		/*if (tex)
+		{
+			QRgb val;
+			// Computing normalized texels position
+			int xpos = (int)(tex->width()  * (float(tp[0]) / texSamplingWidth)) % tex->width();
+			int ypos = (int)(tex->height() * (1.0 - float(tp[1]) / texSamplingHeight)) % tex->height();
+
+			if (xpos < 0) xpos += tex->width();
+			if (ypos < 0) ypos += tex->height();
+
+			val = tex->pixel(xpos, ypos);
+			m->vert.back().C() = Color4b(qRed(val), qGreen(val), qBlue(val), 255);
+		}*/
+
+	}
+};
+
+/* This sampler is used to transfer the detail of a mesh onto another one.
+ * It keep internally the spatial indexing structure used to find the closest point
+ */
+class LocalRedetailSampler
+{
+	typedef GridStaticPtr<MyMesh::FaceType, MyMesh::ScalarType > MetroMeshGrid;
+	typedef GridStaticPtr<MyMesh::VertexType, MyMesh::ScalarType > VertexMeshGrid;
+
+public:
+
+	LocalRedetailSampler() : m(0) {}
+
+	MyMesh *m;           /// the source mesh for which we search the closest points (e.g. the mesh from which we take colors etc).
+	
+	int sampleNum;  // the expected number of samples. Used only for the callback
+	int sampleCnt;
+	MetroMeshGrid   unifGridFace;
+	VertexMeshGrid   unifGridVert;
+	bool useVertexSampling;
+
+	// Parameters
+	typedef tri::FaceTmark<MyMesh> MarkerFace;
+	MarkerFace markerFunctor;
+
+	bool coordFlag;
+	bool colorFlag;
+	bool normalFlag;
+	bool qualityFlag;
+	bool selectionFlag;
+	bool storeDistanceAsQualityFlag;
+	float dist_upper_bound;
+	void init(MyMesh *_m)
+	{
+		coordFlag = false;
+		colorFlag = false;
+		qualityFlag = false;
+		selectionFlag = false;
+		storeDistanceAsQualityFlag = false;
+		m = _m;
+		tri::UpdateNormal<MyMesh>::PerFaceNormalized(*m);
+		if (m->fn == 0) useVertexSampling = true;
+		else useVertexSampling = false;
+
+		if (useVertexSampling) unifGridVert.Set(m->vert.begin(), m->vert.end());
+		else  unifGridFace.Set(m->face.begin(), m->face.end());
+		markerFunctor.SetMesh(m);
+	}
+
+	// this function is called for each vertex of the target mesh.
+	// and retrieve the closest point on the source mesh.
+	void AddVert(MyMesh::VertexType &p)
+	{
+		assert(m);
+		// the results
+		Point3 < MyMesh::ScalarType> closestPt, normf, bestq, ip;
+		MyMesh::ScalarType dist = dist_upper_bound;
+		const MyMesh::CoordType &startPt = p.cP();
+		// compute distance between startPt and the mesh S2
+
+		MyMesh::VertexType   *nearestV = 0;
+		nearestV = tri::GetClosestVertex<MyMesh, VertexMeshGrid>(*m, unifGridVert, startPt, dist_upper_bound, dist); //(PDistFunct,markerFunctor,startPt,dist_upper_bound,dist,closestPt);
+		if (storeDistanceAsQualityFlag)  p.Q() = dist;
+		if (dist == dist_upper_bound) return;
+
+		if (coordFlag) p.P() = nearestV->P();
+		if (colorFlag) p.C() = nearestV->C();
+		if (normalFlag) p.N() = nearestV->N();
+		if (qualityFlag) p.Q() = nearestV->Q();
+		if (selectionFlag) if (nearestV->IsS()) p.SetS();
+	}
+}; // end class RedetailSampler
+
+torch::Tensor PoissonDisk(torch::Tensor vertex, torch::Tensor faces, torch::Tensor out, unsigned int sampleNum,  float rad){
 
     unsigned int numVertex = vertex.size(0);
     unsigned int numFaces = faces.size(1);
@@ -46,80 +211,50 @@ torch::Tensor PoissonDisk(torch::Tensor vertex, torch::Tensor faces, unsigned in
         Allocator<MyMesh>::AddFace(m, &m.vert[p1_index], &m.vert[p2_index], &m.vert[p3_index]);
     }
 
-    tri::io::ExporterOFF<MyMesh>::Save(m,"Original.off");
+    vcg::tri::UpdateBounding<MyMesh>::Box(m);
 
 
-    MyMesh MontecarloSurfaceMesh;
-    MyMesh MontecarloEdgeMesh;
-    MyMesh PoissonEdgeMesh;
-    MyMesh PoissonMesh;
+   /***** SAMPLING *****/
+	
+	int montecarloSamples = sampleNum*10;
+	int poissonDiskSamples = sampleNum;
 
-    /*
-        Mesh recostruction and recalculation
-    */
-    std::vector<Point3f> sampleVec;
-    tri::TrivialSampler<MyMesh> mps(sampleVec);
-    tri::UpdateTopology<MyMesh>::FaceFace(m);
-    tri::UpdateNormal<MyMesh>::PerFace(m);
+	tri::SurfaceSampling<MyMesh, BaseSampler>::PoissonDiskParam pp;
+	pp.radiusVariance = 1.0;
+	bool subsampleFlag = false;
+		
+	float radius = tri::SurfaceSampling<MyMesh, BaseSampler>::ComputePoissonDiskRadius(m, poissonDiskSamples);
+	
+	MyMesh mm; // new mesh
 
-    /*
-        Calculate the edges where the angle between faces is more than 40 degree,
-        filling the found edges with random points.
-    */
-    tri::UpdateFlags<MyMesh>::FaceEdgeSelCrease(m,math::ToRad(40.0f));
-    tri::SurfaceSampling<MyMesh,tri::TrivialSampler<MyMesh> >::EdgeMontecarlo(m,mps,10000,false);
-    tri::BuildMeshFromCoordVector(MontecarloEdgeMesh,sampleVec);
-    tri::io::ExporterOFF<MyMesh>::Save(MontecarloEdgeMesh,"MontecarloEdgeMesh.off");
+	// generate montecarlo samples for fast lookup
+	MyMesh *presampledMesh = 0;
 
-    /*
-        Calculate the Crease vertex (eg: vertex more needed to define the shape)
-        that we will keep as point for our sampling.
-    */
-    sampleVec.clear();
-    tri::SurfaceSampling<MyMesh,tri::TrivialSampler<MyMesh> >::VertexCrease(m, mps);
-    tri::BuildMeshFromCoordVector(PoissonEdgeMesh,sampleVec);
-    tri::io::ExporterOFF<MyMesh>::Save(PoissonEdgeMesh,"VertexCreaseMesh.off");
+	MyMesh MontecarloMesh;
+	presampledMesh = &MontecarloMesh;
 
-    /*
-        Cleaning of the Montecarlo generated distribution on the edges using poisson disk pruning
-    */
-    tri::SurfaceSampling<MyMesh,tri::TrivialSampler<MyMesh> >::PoissonDiskParam pp;
-    pp.preGenMesh = &PoissonEdgeMesh;
-    pp.preGenFlag=true;
-    sampleVec.clear();
-    tri::SurfaceSampling<MyMesh,tri::TrivialSampler<MyMesh> >::PoissonDiskPruning(mps, MontecarloEdgeMesh, rad, pp);
-    tri::BuildMeshFromCoordVector(PoissonEdgeMesh,sampleVec);
-    tri::io::ExporterOFF<MyMesh>::Save(PoissonEdgeMesh,"PoissonEdgeMesh.off");
+	BaseSampler sampler(presampledMesh);
+	tri::SurfaceSampling<MyMesh, BaseSampler>::Montecarlo(m, sampler, montecarloSamples);
+	presampledMesh->bbox = m.bbox; // we want the same bounding box
+	
+	BaseSampler mps(&mm);
 
-    /*
-        Creation of a random Montecarlo sampled cloud point on the full mesh,
-        used as a base where apply the Poisson disk pruning.
-    */
-    sampleVec.clear();
-    tri::SurfaceSampling<MyMesh,tri::TrivialSampler<MyMesh> >::Montecarlo(m,mps,50000);
-    tri::BuildMeshFromCoordVector(MontecarloSurfaceMesh,sampleVec);
-    tri::io::ExporterOFF<MyMesh>::Save(MontecarloSurfaceMesh,"MontecarloSurfaceMesh.off");
+	pp.preGenFlag = true;
+	pp.geodesicDistanceFlag = true;
+	pp.bestSampleChoiceFlag = true;
+	pp.bestSamplePoolSize = 10;
+	tri::SurfaceSampling<MyMesh, BaseSampler>::PoissonDiskPruningByNumber(mps, *presampledMesh, poissonDiskSamples, radius, pp, 0.005);
 
-    /*
-        Pruning of the Montecarlo generated cloud point, with Poisson disk pruning,
-        using the EdgeSampling of before as a base.
-    */
-    pp.preGenMesh = &PoissonEdgeMesh;
-    pp.preGenFlag=true;
-    sampleVec.clear();
-    tri::SurfaceSampling<MyMesh, tri::TrivialSampler<MyMesh> >::PoissonDiskPruning(mps, MontecarloSurfaceMesh, rad, pp);
-    tri::BuildMeshFromCoordVector(PoissonMesh,sampleVec);
-    tri::io::ExporterOFF<MyMesh>::Save(PoissonMesh,"PoissonMesh.off");
 
     //Update Vertex
-    /*
-    for(unsigned int i = 0; i<sampleNum; i++){
-        vertex[i][0] = torch::Scalar(m.vert[i].P()[0] );
-        vertex[i][1] = torch::Scalar(m.vert[i].P()[1] );
-        vertex[i][2] = torch::Scalar(m.vert[i].P()[2] );
-    }*/
 
-    return vertex;
+    for(int i = 0; i<poissonDiskSamples; i++){
+        out[i][0] = torch::Scalar(mm.vert[i].P()[0] );
+        out[i][1] = torch::Scalar(mm.vert[i].P()[1] );
+        out[i][2] = torch::Scalar(mm.vert[i].P()[2] );
+    }
+
+    return out;
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

@@ -141,5 +141,8 @@ RUN pip install --verbose --no-cache-dir torch-scatter \
  && pip install --verbose --no-cache-dir torch-spline-conv \
  && pip install torch-geometric
 
+
+Run python3 setup.py install --force
+
 # Set the default command to python3.
 CMD ["python3"]

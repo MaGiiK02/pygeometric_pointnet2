@@ -121,3 +121,25 @@ INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
 INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset: ModelNet10
+INFO:root:Dataset Train: PoissonModelNet10
+INFO:root:Dataset Test: PoissonModelNet10
+INFO:root:00:04:11.30 :: Epoch: 001, Test: 0.7048, Last 10 AVG: 0.7048, LR: 0.00100000

@@ -1,0 +1,9 @@
+Project/build/*
+Project/build/
+Project/build/*
+Project/DatasetLoader/data
+Project/DatasetLoader/data/*
+Project/VCG.egg-info
+Project/VCG.egg-info/*
+Project/dist/
+Project/dist/*

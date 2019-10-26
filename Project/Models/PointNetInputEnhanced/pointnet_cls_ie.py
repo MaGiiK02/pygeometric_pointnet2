@@ -12,11 +12,12 @@ class PointNetInputEnhanced(torch.nn.Module):
 	r'''
 	'''
 
-	def __init__(self, class_count, nfeatures, bn_momentum=0.1, nPoints=1024):
+	def __init__(self, class_count, nfeatures, batch_size, bn_momentum=0.1, nPoints=1024):
 		super(PointNetInputEnhanced, self).__init__()
 
 		self.nPoints = nPoints
 		self.nFeatures = nfeatures + 4 # 4 is number of radii used to count the points
+		self.batch_size = batch_size
 
 		self.de_layer = AddNeightboursCount(
 			max_points=[1024, 1024, 1024, 1024],
@@ -45,7 +46,7 @@ class PointNetInputEnhanced(torch.nn.Module):
 
 	def forward(self, data):
 		x, pos, batch = self.de_layer(data.x, data.pos, data.batch)
-		x = x.view(len(data.y), self.nPoints, self.nFeatures).transpose(1, 2)
+		x = x.view(self.batch_size, self.nPoints, self.nFeatures).transpose(1, 2)
 		x = self.net(x)
 		x = x.transpose(1, 2).contiguous().view(-1, 1024)
 		x, pos, batch = self.sa3_module(x, data.pos, data.batch)

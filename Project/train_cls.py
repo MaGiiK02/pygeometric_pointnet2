@@ -15,6 +15,7 @@ from Utils.helper import time_to_hms_string
 from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
 from Normalization.normalization import Normalize
+from Sampling.poisson_disk_sampling import PoissonDiskSampling
 
 from Models.PointNet2.pointnet2_cls_ssg import PointNet2Class as PointNet2
 from Models.PointNet2MSG.pointnet2_cls_msg import PointNet2MSGClass as PointNet2MSG
@@ -34,33 +35,43 @@ parser.add_argument('--batch_size', type=int, default=32, help='The size of the 
 parser.add_argument('--weight_decay', type=float, default=1e-5, help='The weight decay to use for the training, the original PointNet2 1e-5 [default:1e-5]')
 parser.add_argument('--lr_decay', type=float, default=0.7, help='The weight decay used as to start the exponential LR decay, the step is defined from the Exponential class of pytorch.[default:0.7]')
 parser.add_argument('--lr_decay_step', type=float, default=2e5, help='Learning rate decay step [default: 2e5]');
-parser.add_argument('--dataset', default='ModelNet40', help='The name of the dataset to use (ModelNet10, ModelNet40, ShapeNet)[default: ModelNet40]')
+parser.add_argument('--train_dataset', default='ModelNet40', help='The name of the dataset to use to train the model (ModelNet10, ModelNet40, ShapeNet)[default: ModelNet40]')
+parser.add_argument('--test_dataset', default='ModelNet40', help='The name of the dataset to use to test the model (ModelNet10, ModelNet40, ShapeNet)[default: ModelNet40]')
 parser.add_argument('--checkpoint', default=None, help='The path to the checkpoint file from which continue the train')
 parser.add_argument('--log_file', default='./train_log.txt', help='The file where to print the logs [default: ./train_log.txt]')
 parser.add_argument('--use_normals', type=bool, default=False, help='Specufy if train the model using point normals from the data sets[default: False]')
 parser.add_argument('--sort_pool_k', type=int, default=32, help='The number of point the sort_pool should keep <only needed with the sort_pool model> [default: 32]')
+parser.add_argument('--sampling_method_train', default='ImportanceSampling', help='The type of sampling to use. [PoissonDiskSampling or ImportanceSampling]')
+parser.add_argument('--sampling_method_test', default='ImportanceSampling', help='The type of sampling to use. [PoissonDiskSampling or ImportanceSampling]')
 ARGS = parser.parse_args()
 
 BATCH_SIZE = ARGS.batch_size
 NUM_POINT = ARGS.num_point
 EPOCH = ARGS.epoch
-DATASET_NAME = ARGS.dataset
+DATASET_TRAIN = ARGS.train_dataset
+DATASET_TEST = ARGS.train_dataset
 MODEL_NAME = ARGS.model
 CHECKPOINT = ARGS.checkpoint
 WEIGHT_DECAY = ARGS.weight_decay
 LR_DECAY = ARGS.lr_decay
 LR_DECAY_STEP = ARGS.lr_decay_step
 LOG_FILE = ARGS.log_file
+USE_NORMALS = ARGS.use_normals
 N_FEATURES = 6 if ARGS.use_normals else 3
 SORT_POOL_K = ARGS.sort_pool_k
+SAMPLING_TRAIN = ARGS.sampling_method_train
+SAMPLING_TEST = ARGS.sampling_method_test
 
 def train(model, train_loader, optimizer, device):
     model.train()
 
     for data in train_loader:
         data = data.to(device)
+        if data.norm is not None:
+            data.x = data.norm
         optimizer.zero_grad()
-        loss = F.nll_loss(model(data), data.y)
+        test_values = data.category if DATASET_TRAIN == 'ShapeNet' else data.y
+        loss = F.nll_loss(model(data), test_values)
         loss.backward()
         optimizer.step()
 
@@ -70,9 +81,10 @@ def test(model, test_loader, device):
     correct = 0
     for data in test_loader:
         data = data.to(device)
+        test_result = data.category if DATASET_TEST == 'ShapeNet' else data.y
         with torch.no_grad():
             pred = model(data).max(1)[1]
-        correct += pred.eq(data.y).sum().item()
+        correct += pred.eq(test_result).sum().item()
     return correct / len(test_loader.dataset)
 
 def setupTrain(model_name, n_features, class_number, device, w_decay, lr_decay, batch_size, decay_step):
@@ -91,7 +103,7 @@ def getModel(name, input_features, class_count):
         model = PointNetVanilla(class_count, nfeatures=input_features, nPoints=NUM_POINT)
 
     elif (MODEL_NAME == 'PointNetInputEnhanced'):
-        model = PointNetInputEnhanced(class_count, nfeatures=input_features, nPoints=NUM_POINT)
+        model = PointNetInputEnhanced(class_count, nfeatures=input_features, batch_size=BATCH_SIZE, nPoints=NUM_POINT)
 
     elif (MODEL_NAME == 'PointNet2'):
         model = PointNet2(class_count, bn_momentum=0.1)
@@ -116,6 +128,19 @@ def getModel(name, input_features, class_count):
 
     return model
 
+def getSampler(name, dataset_name):
+    transform = None
+
+    if(dataset_name == 'ShapeNet'):
+        transform = T.FixedPoints(NUM_POINT)
+
+    elif(name == 'ImportanceSampling'):
+        transform = T.SamplePoints(NUM_POINT, remove_faces=True, include_normals=USE_NORMALS)
+
+    elif (name == 'PoissonDiskSampling'):
+        transform = PoissonDiskSampling(NUM_POINT, remove_faces=True)
+
+    return transform
 
 if __name__ == '__main__':
     logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
@@ -127,9 +152,14 @@ if __name__ == '__main__':
         os.chmod(modelWeightsPath, 0o777)
 
     # DATASET preprocessing
-    pre_transform, transform = Normalize(), T.SamplePoints(NUM_POINT)  # POINT SAMPLING
+    pre_transform = Normalize(),
+    transform_train = getSampler(SAMPLING_TRAIN, DATASET_TRAIN)  # POINT SAMPLING
+    transform_test = getSampler(SAMPLING_TEST, DATASET_TEST)
     (train_dataset, test_dataset) = LoadDataset(
-        DATASET_NAME, transform=transform, pre_transform=pre_transform)
+        DATASET_TRAIN, DATASET_TEST,
+        transform_train=transform_train, pre_transform_train=pre_transform,
+        transform_test=transform_test, pre_transform_test=pre_transform,
+    )
 
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=6)

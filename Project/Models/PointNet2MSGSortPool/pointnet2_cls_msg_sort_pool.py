@@ -20,14 +20,14 @@ class PointNet2MSGSortPoolClass(torch.nn.Module):
         ])
 
         #Because we concat the outout of each layer as a feature of each point
-        n_features_l2 = 3 + 64 + 128 + 128
+        n_features_l2 =  3 + 64 + 128 + 128
         self.sa2_module = SAModuleMSG(128, [0.2,0.4,0.8], [32,64,128], [
             MLP([n_features_l2, 64, 64, 128]),
             MLP([n_features_l2, 128, 128, 256]),
             MLP([n_features_l2, 128, 128, 256])
         ])
 
-        n_features_l3 = 3 + 128 + 256 + 256
+        n_features_l3 =  3 + 128 + 256 + 256
         self.sa3_module = GlobalSortPool(MLP([n_features_l3, 256, 512, 1024]), sort_pool_k)
 
         #Classification Layers

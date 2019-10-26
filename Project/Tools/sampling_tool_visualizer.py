@@ -33,13 +33,14 @@ MODELS_TO_PROCESS = int(ARGS.models_count)
 def getTransform():
 	transform = None
 
-	if(SAMPLING_METHOD == 'ImportanceSampling'):
+	if (SAMPLING_METHOD == 'ImportanceSampling'):
 		transform = T.SamplePoints(SAMPLE_NUM, remove_faces=True, include_normals=False)
 
 	elif (SAMPLING_METHOD == 'PoissonDiskSampling'):
 		transform = Poisson.PoissonDiskSampling(SAMPLE_NUM, remove_faces=True)
 
 	return transform
+
 
 if __name__ == '__main__':
 	'''
@@ -53,14 +54,14 @@ if __name__ == '__main__':
 	assert (transform != None)
 
 	# DATASET preprocessing
-	#pre_transform = T.NormalizeScale()
+	# pre_transform = T.NormalizeScale()
 	pre_transform = N.Normalize()
 
 	classes = os.listdir(SOURCEDIR)
 	files = []
 	for _class in classes:
 		folder = osp.join(SOURCEDIR, _class, 'train')
-		if(osp.isdir(folder)):
+		if (osp.isdir(folder)):
 			folder_file = os.listdir(folder)
 			for f in folder_file:
 				files.append(osp.join(folder, f))
@@ -68,37 +69,33 @@ if __name__ == '__main__':
 	random.shuffle(files)
 	files = files[:MODELS_TO_PROCESS]
 
-
-
-
 	for filename in files:
 		if osp.isdir(filename):
 			continue
 
 		off_obj = OffParser(filename)
 		data = Data(
-			pos = torch.Tensor(off_obj.points).float(),
-			face = torch.Tensor(off_obj.faces).transpose(0,1).long()
+			pos=torch.Tensor(off_obj.points).float(),
+			face=torch.Tensor(off_obj.faces).transpose(0, 1).long()
 		)
 
 		data = pre_transform(data)
 		data = transform(data)
-		pos = data.pos.transpose(0,1)
+		pos = data.pos.transpose(0, 1)
 
 		### Plot Sampled PointCloud
 		fig_point = plt.figure()
-		axp =fig_point.add_subplot(111,
-			 projection='3d',
-			 xlabel='X',
-			 ylabel='Y',
-			 zlabel='Z',
-		     xlim=[-1.5, 1.5],
-		     ylim=[-1.5, 1.5],
-		     zlim=[-1.5, 1.5],
-			 title=osp.basename(filename)
-			 )
+		axp = fig_point.add_subplot(111,
+									projection='3d',
+									xlabel='X',
+									ylabel='Y',
+									zlabel='Z',
+									xlim=[-1.5, 1.5],
+									ylim=[-1.5, 1.5],
+									zlim=[-1.5, 1.5],
+									title=osp.basename(filename)
+									)
 		axp.scatter(pos[0], pos[1], pos[2], c='r', marker='o')
-
 
 		### Plot mesh
 		fig_mesh = plt.figure()
@@ -107,27 +104,15 @@ if __name__ == '__main__':
 		r = 1.1 * np.max(mx - c)
 		xlim, ylim, zlim = np.column_stack([c - r, c + r])
 		axm = fig_mesh.add_subplot(111,
-			 projection='3d',
-			 xlim=xlim,
-			 ylim=ylim,
-			 zlim=zlim,
-			 xlabel='X',
-			 ylabel='Y',
-			 zlabel='Z',
-			 title=osp.basename(filename)
-			 )
+								   projection='3d',
+								   xlim=xlim,
+								   ylim=ylim,
+								   zlim=zlim,
+								   xlabel='X',
+								   ylabel='Y',
+								   zlabel='Z',
+								   title=osp.basename(filename)
+								   )
 		off_obj.plot(axm)
 
 	plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
