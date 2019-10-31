@@ -15,17 +15,10 @@ from Utils.helper import time_to_hms_string
 from Utils.generics import saveModelCheckpoint, loadFromCheckpoint
 from Utils.lr_schedulers import limitedExponentialDecayLR as customExpDecayLambda
 from Normalization.normalization import Normalize
-from Sampling.poisson_disk_sampling import PoissonDiskSampling
 
 from Models.PointNet2.pointnet2_cls_ssg import PointNet2Class as PointNet2
 from Models.PointNet2MSG.pointnet2_cls_msg import PointNet2MSGClass as PointNet2MSG
-from Models.PointNet2MRG.pointnet2_cls_mrg import PointNet2MRGClass as PointNet2MRG
-from Models.PointNet2MRGSortPool.pointnet2_cls_mrg_sort_pool import PointNet2MRGSortPoolClass as PointNet2MRGSortPool
-from Models.PointNet2MSGSortPool.pointnet2_cls_msg_sort_pool import PointNet2MSGSortPoolClass as PointNet2MSGSortPool
-from Models.PointNet2MSGFPSortPool.pointnet2_cls_msgfp_sort_pool import PointNet2MSGFPSortPoolClass as PointNet2MSGFPSortPool
-from Models.PointNet2MRGLight.pointnet2_cls_mrg_light import PointNet2MRGLightClass as PointNet2MRGLight
-from Models.PointNetVanilla.pointnet_cls_vanilla import PointNetVanillaClass  as PointNetVanilla
-from Models.PointNetInputEnhanced.pointnet_cls_ie import PointNetInputEnhanced  as PointNetInputEnhanced
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=None, help='Model name (PointNet2, PointNet2MSG, PointNet2MSGSortPool, PointNet2MRG, PointNet2MRGSortPool, PointNet2MSGFPSortPool)')
@@ -40,9 +33,6 @@ parser.add_argument('--test_dataset', default='ModelNet40', help='The name of th
 parser.add_argument('--checkpoint', default=None, help='The path to the checkpoint file from which continue the train')
 parser.add_argument('--log_file', default='./train_log.txt', help='The file where to print the logs [default: ./train_log.txt]')
 parser.add_argument('--use_normals', type=bool, default=False, help='Specufy if train the model using point normals from the data sets[default: False]')
-parser.add_argument('--sort_pool_k', type=int, default=32, help='The number of point the sort_pool should keep <only needed with the sort_pool model> [default: 32]')
-parser.add_argument('--sampling_method_train', default='ImportanceSampling', help='The type of sampling to use. [PoissonDiskSampling or ImportanceSampling]')
-parser.add_argument('--sampling_method_test', default='ImportanceSampling', help='The type of sampling to use. [PoissonDiskSampling or ImportanceSampling]')
 ARGS = parser.parse_args()
 
 BATCH_SIZE = ARGS.batch_size
@@ -58,9 +48,7 @@ LR_DECAY_STEP = ARGS.lr_decay_step
 LOG_FILE = ARGS.log_file
 USE_NORMALS = ARGS.use_normals
 N_FEATURES = 6 if ARGS.use_normals else 3
-SORT_POOL_K = ARGS.sort_pool_k
-SAMPLING_TRAIN = ARGS.sampling_method_train
-SAMPLING_TEST = ARGS.sampling_method_test
+
 
 def train(model, train_loader, optimizer, device):
     model.train()
@@ -128,19 +116,6 @@ def getModel(name, input_features, class_count):
 
     return model
 
-def getSampler(name, dataset_name):
-    transform = None
-
-    if(dataset_name == 'ShapeNet'):
-        transform = T.FixedPoints(NUM_POINT)
-
-    elif(name == 'ImportanceSampling'):
-        transform = T.SamplePoints(NUM_POINT, remove_faces=True, include_normals=USE_NORMALS)
-
-    elif (name == 'PoissonDiskSampling'):
-        transform = PoissonDiskSampling(NUM_POINT, remove_faces=True)
-
-    return transform
 
 if __name__ == '__main__':
     logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
@@ -153,12 +128,11 @@ if __name__ == '__main__':
 
     # DATASET preprocessing
     pre_transform = Normalize(),
-    transform_train = getSampler(SAMPLING_TRAIN, DATASET_TRAIN)  # POINT SAMPLING
-    transform_test = getSampler(SAMPLING_TEST, DATASET_TEST)
+    transform = T.SamplePoints(NUM_POINT, remove_faces=True, include_normals=USE_NORMALS)  # POINT SAMPLING
     (train_dataset, test_dataset) = LoadDataset(
         DATASET_TRAIN, DATASET_TEST,
-        transform_train=transform_train, pre_transform_train=pre_transform,
-        transform_test=transform_test, pre_transform_test=pre_transform,
+        transform_train=transform, pre_transform_train=pre_transform,
+        transform_test=transform, pre_transform_test=pre_transform,
     )
 
     train_loader = DataLoader(
