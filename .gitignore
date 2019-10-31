@@ -19,3 +19,4 @@ Project/VCG.egg-info
 Project/VCG.egg-info/
 *.off
 *.ply
+*.txt
