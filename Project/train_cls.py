@@ -87,32 +87,12 @@ def setupTrain(model_name, n_features, class_number, device, w_decay, lr_decay, 
 
 def getModel(name, input_features, class_count):
     model = None
-    if (MODEL_NAME == 'PointNetVanilla'):
-        model = PointNetVanilla(class_count, nfeatures=input_features, nPoints=NUM_POINT)
 
-    elif (MODEL_NAME == 'PointNetInputEnhanced'):
-        model = PointNetInputEnhanced(class_count, nfeatures=input_features, batch_size=BATCH_SIZE, nPoints=NUM_POINT)
-
-    elif (MODEL_NAME == 'PointNet2'):
+    if (MODEL_NAME == 'PointNet2'):
         model = PointNet2(class_count, bn_momentum=0.1)
 
     elif (MODEL_NAME == 'PointNet2MSG'):
         model = PointNet2MSG(class_count, nfeatures=input_features)
-
-    elif (MODEL_NAME == 'PointNet2MRG'):
-        model = PointNet2MRG(class_count, nfeatures=input_features)
-
-    elif (MODEL_NAME == 'PointNet2MRGLight'):
-        model = PointNet2MRGLight(class_count, n_features=input_features)
-
-    elif (MODEL_NAME == 'PointNet2MSGSortPool'):
-        model = PointNet2MSGSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
-
-    elif (MODEL_NAME == 'PointNet2MSGFPSortPool'):
-        model = PointNet2MSGFPSortPool(class_count, n_feature=input_features, sort_pool_k=SORT_POOL_K)
-
-    elif (MODEL_NAME == 'PointNet2MRGSortPool'):
-        model = PointNet2MRGSortPool(class_count, n_features=input_features, sort_pool_k=SORT_POOL_K)
 
     return model
 
