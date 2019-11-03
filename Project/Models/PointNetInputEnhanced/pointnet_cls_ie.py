@@ -46,12 +46,9 @@ class PointNetInputEnhanced(torch.nn.Module):
 
 	def forward(self, data):
 		x_size = int(data.pos.size(0)/self.batch_size)
-		missing = self.nPoints-x_size
 		x, pos, batch = self.de_layer(data.x, data.pos, data.batch)
-		x = x.view(self.batch_size, x_size, self.nFeatures)
-		if(missing>0):
-			x = torch.cat([x,x[:,:missing,:]], dim=1).shape
-		x = x.view(self.batch_size, self.nPoints, self.nFeatures).transpose(1, 2)
+		x = x.view(self.batch_size, x_size, self.nFeatures).transpose(1, 2)
+
 		x = self.net(x)
 		x = x.transpose(1, 2).contiguous().view(-1, 1024)
 		x, pos, batch = self.sa3_module(x, data.pos, data.batch)
