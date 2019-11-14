@@ -3,6 +3,7 @@ import logging
 import os
 import os.path as osp
 import time
+import re
 from collections import deque
 
 import torch
@@ -81,6 +82,8 @@ def test(model, test_loader, device):
     correct = 0
     for data in test_loader:
         data = data.to(device)
+        if data.norm is not None:
+            data.x = data.norm
         test_result = data.category if DATASET_TEST == 'ShapeNet' else data.y
         with torch.no_grad():
             pred = model(data).max(1)[1]
@@ -152,6 +155,10 @@ if __name__ == '__main__':
         os.chmod(modelWeightsPath, 0o777)
 
     # DATASET preprocessing
+    if(USE_NORMALS and ('Poisson' in DATASET_TRAIN or 'Poisson' in DATASET_TEST)):
+        print("Poisson sampled data do not support normals(at the moment).")
+        exit(1)
+
     pre_transform = Normalize(),
     transform_train = getSampler(SAMPLING_TRAIN, DATASET_TRAIN)  # POINT SAMPLING
     transform_test = getSampler(SAMPLING_TEST, DATASET_TEST)

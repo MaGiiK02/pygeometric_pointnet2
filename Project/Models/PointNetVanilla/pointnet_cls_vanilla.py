@@ -39,7 +39,11 @@ class PointNetVanillaClass(torch.nn.Module):
         self.lin3 = Lin(256, class_count)
 
     def forward(self, data):
-        x = data.pos.view(len(data.y), self.nPoints, self.nFeatures ).transpose(1,2)
+        x = data.pos
+        if(data.x is not None):
+            x = torch.cat([x,data.x], dim=1)
+
+        x = x.view(len(data.y), self.nPoints, self.nFeatures).transpose(1, 2)
         x = self.net(x)
         x = x.transpose(1,2).contiguous().view(-1,1024)
         x, pos, batch = self.sa3_module(x, data.pos, data.batch)

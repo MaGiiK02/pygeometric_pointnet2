@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
 			axp.scatter(x[0], x[1], x[2],
 						c=neightbours.numpy(),
-						marker='o'
+						marker='.'
 			)
 
 	plt.show()

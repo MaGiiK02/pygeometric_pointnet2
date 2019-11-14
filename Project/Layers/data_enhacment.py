@@ -9,7 +9,9 @@ class AddNeightboursCount(torch.nn.Module):
 
 	def forward(self, x, pos, batch):
 		if(x is None):
-			x = pos #TODO maybe clone
+			x = pos
+		else:
+			x = torch.cat([x, pos], dim=1)
 
 		# extend the feature dimension in order to accommodate the new features
 		for i in range(len(self.radii)) :
