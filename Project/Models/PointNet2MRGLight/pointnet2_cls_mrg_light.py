@@ -22,7 +22,7 @@ class PointNet2MRGLightClass(torch.nn.Module):
 
 		# The mpls are shared to lower the model memory footprint
 		self.high_resolution_module = SAModuleMRG(num_points, 512, shared_mpls)
-		self.low_resolution_module = SAModuleMRG(num_points, 128, shared_mpls)
+		self.low_resolution_module = SAModuleMRG(num_points, 256, shared_mpls)
 
 		self.readout = GlobalSAModule(MLP([527, 1024, 1024, 1024]))
 
