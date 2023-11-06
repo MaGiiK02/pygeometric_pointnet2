@@ -1,6 +1,6 @@
 # PointNet++ (PointNet2) on pytorch_geometric
 
-A remake of the pointnet2 model using the popular pytorch_geometric framework, starting form the pytorc_geometric's example of the PointNet2.
+A remake of the pointnet2 model using the popular pytorch_geometric framework, starting form the pytorc_geometric's example of the standard PointNet.
 
 ## Run the code
 
